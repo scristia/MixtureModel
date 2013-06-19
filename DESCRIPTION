@@ -1,0 +1,9 @@
+Package: MixtureModel
+Type: Package
+Title: Guassian Mixture Model using Gibbs Sampling
+Version: 1.0
+Date: 2013-06-19
+Author: Stephen Cristiano
+Maintainer: Who to complain to <scristia@jhsph.edu>
+Description: fits gaussian mixture
+License: GPL 
