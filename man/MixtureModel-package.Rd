@@ -15,7 +15,7 @@ More about what it does (maybe more than one line)
 Package: \tab MixtureModel\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
-Date: \tab 2013-06-19\cr
+Date: \tab 2013-06-20\cr
 License: \tab What license is it under?\cr
 }
 ~~ An overview of how to use the package, including the most important functions ~~

@@ -2,7 +2,7 @@
 \alias{dnormmix}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-gets likelihood for mixture of normal distributions
+normal mixture
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~

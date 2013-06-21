@@ -2,7 +2,7 @@
 \alias{getPost}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Finds posterior with best fit
+gets posterior distribution and performs model selection
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~

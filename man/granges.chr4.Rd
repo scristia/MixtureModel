@@ -2,7 +2,7 @@
 \alias{granges.chr4}
 \docType{data}
 \title{
-Genomic ranges of interest
+Interesting regions
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of the dataset. ~~

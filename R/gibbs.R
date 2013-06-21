@@ -16,6 +16,10 @@ function(r, nn,
 	s2n <- tau2n <- mun <- numeric(K)
 	p <- matrix(NA, sum(nn), K)
 	nun <- nu0+nn
+	
+	## for sampling from constrained full conditionals
+	a0 <- min(r)
+	b0 <- max(r)
 
 	if(missing(mu0)){
 		## assume the mode is copy number 2
@@ -35,6 +39,7 @@ function(r, nn,
 	## just use marginal variance as guess of variance -- very diffuse
 	precs[1,] <- 1/rep(s2, K)
 	PI <- matrix(NA,S, K)
+	theta <- c()
 	for(s in 2:S){
 		##
 		## simulate pi from its multinomial posterior
@@ -49,8 +54,26 @@ function(r, nn,
 		mun <- (1/tau20)/(1/tau20 + nn*precs[s-1, ])*mu0 + nn*precs[s-1, ]/(1/tau20 + nn*precs[s-1, ])*rbar
 		##
 		## simulate from full conditional for theta
-		##
-		theta <- rnorm(K, mun, sqrt(tau2n))
+		## samples from the constrained distributions for each theta
+		## 
+		for(k in 1:K){
+			if(k==1){
+				a <- a0
+				b <- means[s-1, k+1]
+				theta[k] <- constr.draw(mun[k], tau2n[k],a, b)
+			}
+			else if(k==K){
+				a <- theta[k-1]
+				b <- b0
+				theta[k] <- constr.draw(mun[k], tau2n[k], a, b)
+			}
+			else{
+				a <- theta[k-1]
+				b <- means[s-1, k+1]
+				theta[k] <- constr.draw(mun[k], tau2n[k], a, b)
+			}
+		}	
+		## check: make sure contstrained sampling is working properly
 		inc <- diff(theta) > 0
 		cnt <- 0
 		while(!all(inc)){
@@ -59,6 +82,7 @@ function(r, nn,
 			cnt <- cnt+1
 			if(cnt > 20) stop("theta's not ordered")
 		}
+
 		##
 		## simulate precision from full conditional
 		##
@@ -66,13 +90,10 @@ function(r, nn,
 		means[s, ] <- theta
 		precs[s, ] <- prec
 
-
 		## simulate latent variable
 		d <- matrix(NA, nrow = length(r), ncol = K)
 		for(i in 1:K) d[,i] <- pi[i]*dnorm(r, theta[i], sqrt(1/prec[i]))
 		p <- d/apply(d, 1, sum)
-		#denom <- denom + pi[i]*d[,i]
-		#for(i in 1:K) p[, i] <- (pi[i]*d[,i])/denom
 	
 		#z <- rMultinom(p,1) - 1 ## Requires Hmisc package
 		
@@ -88,11 +109,10 @@ function(r, nn,
 		## update [pi|data]
 		##
 		for(i in 1:K) nn[i] <- sum(z==(i-1)) 
-#		if(any(nn < 10 | is.na(nn))){
-#			browser()
-#		}
-		##
-		##
+
+		if(any(nn < 10 | is.na(nn))){
+		browser()
+		}
 		##
 		rbar <- sapply(split(r, z), mean, na.rm=TRUE)
 		s2 <- sapply(split(r, z), var, na.rm=TRUE)

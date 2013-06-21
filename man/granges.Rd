@@ -2,7 +2,7 @@
 \alias{granges}
 \docType{data}
 \title{
-Genomic Ranges
+Genomic ranges
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of the dataset. ~~

@@ -2,7 +2,7 @@
 \alias{gibbs}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Gibbs sampling
+Gibbs sampler
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
@@ -85,6 +85,8 @@ function (r, nn, alpha = rep(1, 3), mu0 = c(-4, -0.5, 0), tau20 = 0.1,
     s2n <- tau2n <- mun <- numeric(K)
     p <- matrix(NA, sum(nn), K)
     nun <- nu0 + nn
+    a0 <- min(r)
+    b0 <- max(r)
     if (missing(mu0)) {
         mu0 <- numeric(K)
         rr <- r[!is.na(r)]
@@ -99,6 +101,7 @@ function (r, nn, alpha = rep(1, 3), mu0 = c(-4, -0.5, 0), tau20 = 0.1,
     Z <- matrix(NA, length(r), S - 1)
     precs[1, ] <- 1/rep(s2, K)
     PI <- matrix(NA, S, K)
+    theta <- c()
     for (s in 2:S) {
         pi <- rdirichlet(1, alpha + nn)
         tau2n <- 1/(1/tau20 + nn * precs[s - 1, ])
@@ -108,7 +111,26 @@ function (r, nn, alpha = rep(1, 3), mu0 = c(-4, -0.5, 0), tau20 = 0.1,
         mun <- (1/tau20)/(1/tau20 + nn * precs[s - 1, ]) * mu0 + 
             nn * precs[s - 1, ]/(1/tau20 + nn * precs[s - 1, 
                 ]) * rbar
-        theta <- rnorm(K, mun, sqrt(tau2n))
+        for (k in 1:K) {
+            if (k == 1) {
+                a <- a0
+                b <- means[s - 1, k + 1]
+                theta[k] <- constr.draw(mun[k], tau2n[k], a, 
+                  b)
+            }
+            else if (k == K) {
+                a <- theta[k - 1]
+                b <- b0
+                theta[k] <- constr.draw(mun[k], tau2n[k], a, 
+                  b)
+            }
+            else {
+                a <- theta[k - 1]
+                b <- means[s - 1, k + 1]
+                theta[k] <- constr.draw(mun[k], tau2n[k], a, 
+                  b)
+            }
+        }
         inc <- diff(theta) > 0
         cnt <- 0
         while (!all(inc)) {
@@ -132,6 +154,9 @@ function (r, nn, alpha = rep(1, 3), mu0 = c(-4, -0.5, 0), tau20 = 0.1,
             tmp <- tmp + p[, i]
         }
         for (i in 1:K) nn[i] <- sum(z == (i - 1))
+        if (any(nn < 10 | is.na(nn))) {
+            browser()
+        }
         rbar <- sapply(split(r, z), mean, na.rm = TRUE)
         s2 <- sapply(split(r, z), var, na.rm = TRUE)
         if (any(diff(rbar) < 0)) {
