@@ -2,7 +2,7 @@
 \alias{avgRs}
 \docType{data}
 \title{
-average logR ratios
+Avg Rs
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of the dataset. ~~

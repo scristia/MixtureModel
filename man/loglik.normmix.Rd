@@ -2,13 +2,13 @@
 \alias{loglik.normmix}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Find log likelihood
+Find log-likelihood for normal mixture
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-loglik.normmix(r, mixture)
+loglik.normmix(r, mixture, K, burnin = 1:50)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,6 +17,12 @@ loglik.normmix(r, mixture)
 }
   \item{mixture}{
 %%     ~~Describe \code{mixture} here~~
+}
+  \item{K}{
+%%     ~~Describe \code{K} here~~
+}
+  \item{burnin}{
+%%     ~~Describe \code{burnin} here~~
 }
 }
 \details{
@@ -50,9 +56,9 @@ loglik.normmix(r, mixture)
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function (r, mixture) 
+function (r, mixture, K, burnin = 1:50) 
 {
-    loglike <- dnormmix(r, mixture, log = TRUE)
+    loglike <- dnormmix(r, mixture, K, burnin = 1:50, log = TRUE)
     return(sum(loglike))
   }
 }

@@ -2,7 +2,7 @@
 \alias{dppgibbs}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-gibbs sampling with dirichlet process prior
+Gibbs Sample with Dirichlet process prior
 }
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
