@@ -1,1 +1,2 @@
+useDynLib(MixtureModel)
 exportPattern("^[[:alpha:]]+")
