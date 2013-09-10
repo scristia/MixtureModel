@@ -26,7 +26,7 @@ gibbs.mix <- function(r, S=1000, k, delta=0.15, mu0, tau20,
 
     ## simulate from prior
     rbar <- means[1, ] <- rnorm(k, mu0, tau20)
-    Z <- matrix(NA, S, length(r))
+    Z <- matrix(0, length(r), k)
 
     precs[1, ] <- 1/sigma20
     post <- .Call("gibbs_mix", r, means, precs, PI, Z, nu0, mu0, kappa0, alpha,
@@ -34,5 +34,7 @@ gibbs.mix <- function(r, S=1000, k, delta=0.15, mu0, tau20,
 
     loglik <- loglik.normmix(r, post, K=k, burnin=burnin)
     bic <- -2*loglik + (3*k-1)*log(length(r))
-    return(c(post, "loglik"=loglik, "bic"=bic, "K"=k))
+    icl <- icl(r, post, K=k, bic)
+
+    return(c(post, "loglik"=loglik, "bic"=bic, "icl"=icl, "K"=k))
 }

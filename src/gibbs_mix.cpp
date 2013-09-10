@@ -1,15 +1,13 @@
-#include "gibbs_mix.h"
-#include "Rmath.h"
-
 /* Description
  *
  *
  * TO DO: - Add conditionals so don't take variance of single element,
  *          or mean of zero elements.
  *        - Add thinning parameter.
- *        - instead of Z matrix, return for each individual belonging to a
- *          copy number state.
  */
+
+#include "gibbs_mix.h"
+#include "Rmath.h"
 
 using namespace Rcpp;
 
@@ -45,7 +43,7 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
     Rcpp::NumericMatrix xmeans(means);
     Rcpp::NumericMatrix xprecs(precs);
     Rcpp::NumericMatrix xP(P);
-    Rcpp::IntegerMatrix xZ(Z);
+    Rcpp::NumericMatrix xZ(Z);
     Rcpp::NumericVector xnu0(nu0);
     Rcpp::NumericVector xmu0(mu0);
     Rcpp::NumericVector xkappa0(kappa0);
@@ -59,7 +57,7 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
     Rcpp::IntegerVector xburnin(burnin);
 
     int n_mcmc = xmeans.nrow(); // length of mcmc chain
-    int size = std::accumulate(xnn.begin(), xnn.end(), 0.0);
+    int size = (int) std::accumulate(xnn.begin(), xnn.end(), 0.0);
     const int K = xmeans.ncol(); // number of components
     double a0 = min(xr);
     double b0 = max(xr);
@@ -103,6 +101,7 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
                     pow(xrbar[j]-xmu0[j], 2));
             // theta[j] = as<double>(rnorm(1, mun[j], sqrt(tau2n[j])));
             // simulate from the precision's full conditional
+            // if s2n is NA, rgamma returns NaN
             postprec[j] = as<double>(rgamma(1, nun[j]/2, 1/(nun[j]/2*s2n[j])));
         }
 
@@ -130,17 +129,19 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
         for(int m=0; m<endpoints.size()-2; m++) {
             //     Rcpp::Rcout << q[res[m]] << "::" << res[m];
             //       if(q[res[m]]) {
-            a = endpoints[m] + xdelta[0];
-            b = endpoints[m+2] - xdelta[0];
-            //          Rcpp::Rcout << "a = " << a << std::endl;
-            //          Rcpp::Rcout << "b = " << b << std::endl
-            //        if(mun[res[m]] < a) mun[res[m]] = a;
-            //        if(mun[res[m]] > b) mun[res[m]] = b;
-            if(mun[m] < a) mun[m] = a;
-            if(mun[m] > b) mun[m] = b;
-            //           theta[res[m]] = as<double>(rnorm(1, mun[res[m]], sqrt(tau2n[res[m]])));
+            if( q[m] ) {
+                a = endpoints[m] + xdelta[0];
+                b = endpoints[m+2] - xdelta[0];
+                //          Rcpp::Rcout << "a = " << a << std::endl;
+                //          Rcpp::Rcout << "b = " << b << std::endl
+                //        if(mun[res[m]] < a) mun[res[m]] = a;
+                //        if(mun[res[m]] > b) mun[res[m]] = b;
+                if(mun[m] < a) mun[m] = a;
+                if(mun[m] > b) mun[m] = b;
+                //           theta[res[m]] = as<double>(rnorm(1, mun[res[m]], sqrt(tau2n[res[m]])));
 
-            theta[m] = cons_normal(mun[m], tau2n[m], a, b);
+                theta[m] = cons_normal(mun[m], tau2n[m], a, b);
+            }
             //      }
         }
 
@@ -164,8 +165,11 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
             dcol = pi[j]*dnorm(xr, theta[j], sqrt(1/postprec[j]));
         }
         // normalize d so rows sum to one
+        // If d(i, j) not finite (as in the case null or singular components),
+        // so need a check to prevent this.
         for(int i=0; i<size; i++) {
             double dsum = 0;
+            // LogicalVector qs = is_finite( d( i, _));
             for(int j=0; j<K; j++) {
                 dsum += d( i, j);
             }
@@ -207,14 +211,32 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
                 if(z[i] == j) xsigma20[j] += pow(xr[i]-xrbar[j], 2)/xnn[j];
             }
         }
+        // Check for 1 and 0 member components, assign NAs accordingly
+        LogicalVector is_one = xnn == 1;
+        LogicalVector is_zero = xnn == 0;
+        if( is_true(any(is_one)) ) {
+            for(int j=0; j<K; j++) if(is_one[j] == 1) xsigma20[j] = NA_REAL;
+        }
+        if( is_true(any(is_zero)) ) {
+            for(int j=0; j<K; j++) {
+                if(is_zero[j] == 1) {
+                    xsigma20[j] = NA_REAL;
+                    xrbar[j] = NA_REAL;
+                }
+            }
+        }
 
         // Write to the matrix of latent variables
         // saving and returning Z matrix slows function down
         // Instead: for each individual, save which copy number state
         // keep tally, find probability after loop terminates.
-        IntegerMatrix::Row Zrow = xZ(s, _);
-        Zrow = z;
-
+        for(int i=0; i<size; i++) {
+            for(int j=0; j<K; j++) {
+                if(z[i] == j) xZ( i, j) += 1;
+            }
+        }
+    //  IntegerMatrix::Row Zrow = xZ(s, _);
+    //  Zrow = z;
     } // end Gibbs
 
 
@@ -228,8 +250,8 @@ RcppExport SEXP gibbs_mix(SEXP r, SEXP means, SEXP precs, SEXP P, SEXP Z,
 
     List ret;
     ret["means"] = xmeans( Range( xburnin[0], n_mcmc-1), _);
-    ret["precs"] = xprecs( Range( xburnin[0], n_mcmc-1), _);;
-    ret["P"] = xP( Range( xburnin[0], n_mcmc-1), _);;
-    ret["Z"] = xZ( Range( xburnin[0], n_mcmc-1), _);
+    ret["precs"] = xprecs( Range( xburnin[0], n_mcmc-1), _);
+    ret["P"] = xP( Range( xburnin[0], n_mcmc-1), _);
+    ret["Z"] = xZ;
     return ret;
 }
